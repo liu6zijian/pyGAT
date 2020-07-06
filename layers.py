@@ -17,19 +17,26 @@ class GraphAttentionLayer(nn.Module):
         self.alpha = alpha
         self.concat = concat
 
-        self.W = nn.Parameter(torch.zeros(size=(in_features, out_features)))
-        nn.init.xavier_uniform_(self.W.data, gain=1.414)
-        self.a = nn.Parameter(torch.zeros(size=(2*out_features, 1)))
-        nn.init.xavier_uniform_(self.a.data, gain=1.414)
+        self.W = nn.Parameter(torch.randn(size=(in_features, out_features)))
+        nn.init.kaiming_uniform_(self.W)
+        # nn.init.xavier_uniform_(self.W, gain=1.414)
+        self.a1 = nn.Parameter(torch.randn(size=(out_features, 1)))
+        # nn.init.kaiming_uniform_(self.a1)
+        # nn.init.xavier_uniform_(self.a1, gain=1.414)
+        self.a2 = nn.Parameter(torch.randn(size=(out_features, 1)))
+        # nn.init.kaiming_uniform_(self.a2)
+        # nn.init.xavier_uniform_(self.a2, gain=1.414)
 
         self.leakyrelu = nn.LeakyReLU(self.alpha)
 
     def forward(self, input, adj):
         h = torch.mm(input, self.W)
         N = h.size()[0]
-
-        a_input = torch.cat([h.repeat(1, N).view(N * N, -1), h.repeat(N, 1)], dim=1).view(N, -1, 2 * self.out_features)
-        e = self.leakyrelu(torch.matmul(a_input, self.a).squeeze(2))
+        h1 = torch.mm(h, self.a1)
+        h2 = torch.mm(h, self.a2)
+        e = self.leakyrelu(h1.repeat(1,N)+h2.repeat(N,1).view(N,N))
+        # a_input = torch.cat([h.repeat(1, N).view(N * N, -1), h.repeat(N, 1)], dim=1).view(N, -1, 2 * self.out_features)
+        # e = self.leakyrelu(torch.matmul(a_input, self.a).squeeze(2))
 
         zero_vec = -9e15*torch.ones_like(e)
         attention = torch.where(adj > 0, e, zero_vec)

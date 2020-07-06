@@ -51,3 +51,36 @@ class SpGAT(nn.Module):
         x = F.elu(self.out_att(x, adj))
         return F.log_softmax(x, dim=1)
 
+class GCN(nn.Module):
+    def __init__(self, in_c, out_c, hid_c):
+        super(GCN, self).__init__()
+        # self.W1 = nn.Parameter(torch.randn([in_c, hid_c]) )
+        # torch.nn.init.xavier_uniform_(self.W1,gain=1.414)
+        # self.W2 = nn.Parameter(torch.randn([hid_c, out_c]) )
+        # torch.nn.init.xavier_uniform_(self.W2,gain=1.414)
+        self.fc1 = nn.Linear(in_c, hid_c)
+        self.fc2 = nn.Linear(hid_c, out_c)
+    def forward(self, x, adj):
+        # adj = GCN.adj_preprocess(adj)
+        x = adj.mm(x)
+        # x = F.relu(x.mm(self.W1))
+        x = F.relu(self.fc1(x))
+        x = F.dropout(x,training=self.training)
+        x = adj.mm(x)
+        # x = x.mm(self.W2)
+        x = self.fc2(x)
+
+        return F.log_softmax(x, dim=1)
+
+    # @staticmethod
+    # def adj_preprocess(adj):
+    #     N = adj.size(0)
+    #     matrix_I = torch.eye(N,dtype=adj.dtype,device=adj.device)
+    #     D = adj.sum(dim=0).pow(-1)
+    #     D[D == float("inf")] = 0.
+    #     D = torch.diag(D)
+    #     adj += matrix_I
+    #     return D.mm(adj)
+
+
+
